@@ -1,14 +1,12 @@
 import traceback
+from contextlib import contextmanager
 from functools import partial
 from typing import Callable, Union, Type, Tuple, Any, TypeVar
-
-from exceptions import DirChangerError
-
 
 Return_T = TypeVar("Return_T")
 
 
-def rpartial(func: Callable[[Any, ...], Return_T], *args: Any, **kwargs: Any) -> Callable[[Any, ...], Return_T]:
+def rpartial(func: Callable, *args: Any, **kwargs: Any) -> Callable:
     """
     Like functools.partial but recursive.
     Example:
@@ -25,9 +23,12 @@ def rpartial(func: Callable[[Any, ...], Return_T], *args: Any, **kwargs: Any) ->
     return partial(returned)
 
 
-def run_as_user_shortcut(function: Callable[[], None], exceptions: Union[Type[Exception], Tuple[Type[Exception]]] = DirChangerError):
+@contextmanager
+def user_friendly_errors(exceptions: Union[Type[Exception], Tuple[Type[Exception]]] = Exception):
     try:
-        function()
+        yield None
     except exceptions:
         traceback.print_exc()
         input("\n\npress enter to exit...")
+    finally:
+        pass
