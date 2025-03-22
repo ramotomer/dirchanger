@@ -1,3 +1,4 @@
+import re
 import sys
 from enum import Enum
 from os import walk
@@ -10,6 +11,11 @@ from utils import user_friendly_errors
 
 FileCondition_T = Callable[[str, str], bool]
 Specifier_T = str
+
+
+FILE_PATTERNS_TO_IGNORE = [
+    r".*~",
+]
 
 
 class ItemType(Enum):
@@ -62,8 +68,17 @@ def file_condition__fuzzy_contains(filename: str, specifier: str) -> bool:
 
     return True
 
+
 def is_a_match(matcher: FileCondition_T, filename: str, specifier: str) -> bool:
     return matcher(filename, specifier)
+
+
+def should_exclude_file(filename: str) -> bool:
+    for pattern in FILE_PATTERNS_TO_IGNORE:
+        match = re.match(pattern, filename)
+        if match is not None and match.group(0) == filename:
+            return True
+    return False
 
 
 def get_directory_listing(path: Path) -> DirectoryListing:
@@ -90,7 +105,7 @@ def choose_file_by_specifier(current_path: Path, next_specifier: Specifier_T, cu
 
     matched_files = []
     for condition in FILE_CONDITIONS:
-        matched_files = [filename for filename in items if is_a_match(condition, filename, next_specifier)]
+        matched_files = [filename for filename in items if is_a_match(condition, filename, next_specifier) and not should_exclude_file(filename)]
 
         if len(matched_files) == 1:
             return current_path / Path(matched_files[0])
