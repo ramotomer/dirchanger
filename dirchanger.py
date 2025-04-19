@@ -23,6 +23,12 @@ class ItemType(Enum):
     FILE      = "file"
 
 
+class ActionType(Enum):
+    OPEN_FILE_EXPLORER = "open_file_explorer"
+    OPEN_FILE          = "open_file"
+    OPEN_CMD           = "open_cmd"
+
+
 class DirectoryListing(NamedTuple):
     directory: List[str]
     file:      List[str]
@@ -130,10 +136,30 @@ def open_in_file_explorer(path: Path) -> None:
     Popen(f"explorer \"{path!s}\"")
 
 
+def open_cmd_at(path: Path) -> None:
+    Popen(f"cmd /K cd \"{path!s}\"")
+
+
 if __name__ == '__main__':
     with user_friendly_errors():
         BASE_PATH = Path(r"C:\ramotomer")
-        user_target_item_type = ItemType(sys.argv[1])
+        action_type = ActionType(sys.argv[1])
         user_specifiers = sys.argv[2:]
 
-        open_in_file_explorer(locate_complete_path(BASE_PATH, user_target_item_type, user_specifiers))
+        if action_type == ActionType.OPEN_FILE_EXPLORER:
+            action = open_in_file_explorer
+            item_type = ItemType.DIRECTORY
+
+        elif action_type == ActionType.OPEN_FILE:
+            action = open_in_file_explorer
+            item_type = ItemType.FILE
+
+        elif action_type == ActionType.OPEN_CMD:
+            action = open_cmd_at
+            item_type = ItemType.DIRECTORY
+
+        else:
+            raise ValueError(f"Invalid action {action_type}")
+
+        path = locate_complete_path(BASE_PATH, item_type, user_specifiers)
+        action(path)
