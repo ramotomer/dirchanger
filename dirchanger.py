@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import List, Callable
 
-from actions import ActionType, get_action, get_item_types
+from actions import get_action
 from dir_list import get_directory_listing, ItemType
 from item_filtering import choose_file_by_specifier
 from utils import user_friendly_errors
@@ -29,14 +29,12 @@ def locate_complete_path(base_path: Path, target_item_types: List[ItemType], spe
 
 
 def main():
-    action_type = ActionType(sys.argv[1])
+    action_str = sys.argv[1]
     user_specifiers = sys.argv[2:]
 
-    action = get_action(action_type)
-    item_types = get_item_types(action_type)
-
-    path = locate_complete_path(BASE_PATH, item_types, user_specifiers)
-    action(path)
+    action = get_action(action_str)
+    path = locate_complete_path(BASE_PATH, action.accepted_item_types, user_specifiers)
+    action.callback(path)
 
 
 if __name__ == '__main__':

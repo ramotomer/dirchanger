@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+from dataclasses import dataclass
+
 import clipboard
 from pathlib import Path
 from subprocess import Popen
@@ -26,6 +29,13 @@ class ActionType(Enum):
         return self in [ActionType.OPEN_ITEM, ActionType.OPEN_FILE_EXPLORER, ActionType.COPY_FULL_PATH]
 
 
+@dataclass
+class PathAction:
+    type:                ActionType
+    callback:            ActionCallback_T
+    accepted_item_types: List[ItemType]
+
+
 def action_callback__open_in_file_explorer(path: Path) -> None:
     Popen(f"explorer \"{path!s}\"")
 
@@ -38,28 +48,17 @@ def action_callback__copy_full_path(path: Path) -> None:
     clipboard.copy(str(path))
 
 
-def get_item_types(action_type: ActionType) -> List[ItemType]:
-    item_types: List[ItemType] = []
-    if action_type.accepts_file_items:
-        item_types.append(ItemType.FILE)
-    if action_type.accepts_directory_items:
-        item_types.append(ItemType.DIRECTORY)
-    assert len(item_types) > 0, f"Action of type {action_type} resulted in no desired items! Unsupported?"
-    return item_types
+PATH_ACTIONS = [
+    PathAction(ActionType.OPEN_FILE_EXPLORER, action_callback__open_in_file_explorer,  [ItemType.DIRECTORY]               ),
+    PathAction(ActionType.OPEN_FILE,          action_callback__open_in_file_explorer,  [ItemType.FILE]                    ),
+    PathAction(ActionType.OPEN_CMD,           action_callback__open_cmd_at,            [ItemType.DIRECTORY]               ),
+    PathAction(ActionType.OPEN_ITEM,          action_callback__open_in_file_explorer,  [ItemType.FILE, ItemType.DIRECTORY]),
+    PathAction(ActionType.COPY_FULL_PATH,     action_callback__copy_full_path,         [ItemType.FILE, ItemType.DIRECTORY]),
+]
 
 
-def get_action(action_type: ActionType) -> ActionCallback_T:
-    if action_type in [
-            ActionType.OPEN_FILE_EXPLORER,
-            ActionType.OPEN_FILE,
-            ActionType.OPEN_ITEM,
-        ]:
-        return action_callback__open_in_file_explorer
-
-    if action_type == ActionType.OPEN_CMD:
-        return action_callback__open_cmd_at
-
-    if action_type == ActionType.COPY_FULL_PATH:
-        return action_callback__copy_full_path
-
-    raise ValueError(f"Invalid action {action_type}")
+def get_action(action_str: str) -> PathAction:
+    results = [action for action in PATH_ACTIONS if action.type.value == action_str]
+    assert len(results) > 0,  f"Unknown action type {action_str!r}"
+    assert len(results) <= 1, f"Too many matching actions, this is impossible, {results=}"
+    return results[0]
